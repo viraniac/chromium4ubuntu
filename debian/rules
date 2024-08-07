@@ -43,7 +43,7 @@ defines=clang_use_chrome_plugins=false
 
 # use system rust
 export RUSTC_BOOTSTRAP=1
-export CLANG_MVERS="$(shell $(CC) --version| sed -n 's/Ubuntu clang version //p' | cut -d. -f1)"
+export CLANG_MVERS=$(shell $(CC) --version | sed -n 's/.* clang version //p' | cut -d. -f1)
 defines+=rust_sysroot_absolute=\"/usr\"
 defines+=rust_bindgen_root=\"/usr\"
 defines+=rustc_version=\"$(shell rustc --version)\"
@@ -69,6 +69,14 @@ ifeq (armhf,$(DEB_HOST_ARCH))
 defines+=host_cpu=\"arm\" use_v4l2_codec=true use_vaapi=false arm_use_neon=true
 endif
 
+# thin lto requires >4 GB RAM, so avoid it on 32-bit architectures
+ifeq ($(filter armhf i386,$(DEB_HOST_ARCH)),)
+defines+=use_thin_lto=true
+else
+defines+=use_thin_lto=false \
+         concurrent_links=1
+endif
+
 # disabled features
 defines+=is_debug=false \
          use_sysroot=false \
@@ -89,7 +97,6 @@ defines+=is_debug=false \
          treat_warnings_as_errors=false \
          use_qt=false \
          is_cfi=false \
-         use_thin_lto=false \
          chrome_pgo_phase=0 \
 
 # enabled features
@@ -109,7 +116,6 @@ defines+=use_gio=true \
          use_system_freetype=true \
          use_system_harfbuzz=true \
          use_system_libopenjpeg2=true \
-         concurrent_links=1 \
          proprietary_codecs=true \
          ffmpeg_branding=\"Chrome\" \
          disable_fieldtrial_testing_config=true \
@@ -174,7 +180,7 @@ override_dh_auto_build-indep:
 override_dh_auto_install-arch:
 	dh_auto_install
 	# update launcher script with build information
-	sed 's|@BUILD_DIST@|$(shell cat /etc/debian_version)|' \
+	sed 's|@BUILD_DIST@|$(shell . /etc/os-release && echo "$$PRETTY_NAME")|' \
 	    < debian/scripts/chromium > debian/chromium/usr/bin/chromium
 	# move icons into /usr/share
 	./debian/scripts/icons
