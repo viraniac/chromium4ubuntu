@@ -31,6 +31,7 @@ export CXXFLAGS+=-Wno-conversion \
                  -Wno-unused-function \
                  -Wno-unused-variable \
                  -Wno-unused-private-field \
+                 -Wno-unused-command-line-argument \
                  -Wno-deprecated-declarations \
                  -Wno-unknown-pragmas \
 
@@ -154,7 +155,8 @@ override_dh_auto_configure: test_armhf_neon
 	./debian/scripts/unbundle
 
 override_dh_auto_build-arch:
-	gn gen out/Release --args="$(defines)"
+	tools/gn/bootstrap/bootstrap.py --build-path=out/Release --skip-generate-buildfiles
+	out/Release/gn gen out/Release --args="$(defines)"
 	ninja -j$(njobs) -C out/Release chrome chrome_sandbox content_shell chromedriver
 	cp out/Release/chrome out/Release/chromium
 	cp out/Release/content_shell out/Release/chromium-shell
